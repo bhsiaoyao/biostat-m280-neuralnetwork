@@ -32,7 +32,6 @@ I found the [TensorFlow for R Blog](https://blogs.rstudio.com/tensorflow/) serie
     library(tidyverse) # Data cleaning / Visualization
     library(knitr)     # Table printing
     library(rmarkdown) # Misc. output utilities 
-    install.packages("ggridges")
     library(ggridges)  # Visualization
     library(tensorflow)
     install_tensorflow()
