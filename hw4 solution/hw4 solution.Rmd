@@ -6,8 +6,6 @@ output: html_document
 ---
 
 
-df
-
 
 
 ```{r setup, include=FALSE}
