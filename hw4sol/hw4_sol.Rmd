@@ -156,10 +156,12 @@ To obtain this we will scan through each of the recording files present in dataF
 ```
 
 
-    **Exploring the data**
+**Exploring the data**
+    
 Now that we have all the data loaded along with the experiment, userId, and activity labels, we can explore the data set.
 
-    **Length of recordings**
+**Length of recordings**
+    
 Let’s first look at the length of the recordings by activity.
 
 ```{r}
@@ -172,7 +174,8 @@ Let’s first look at the length of the recordings by activity.
 The fact there is such a difference in length of recording between the different activity types requires us to be a bit careful with how we proceed. If we train the model on every class at once we are going to have to pad all the observations to the length of the longest, which would leave a large majority of the observations with a huge proportion of their data being just padding-zeros. Because of this, we will fit our model to just the largest ‘group’ of observations length activities, these include STAND_TO_SIT, STAND_TO_LIE, SIT_TO_STAND, SIT_TO_LIE, LIE_TO_STAND, and LIE_TO_SIT.
 
 
-    **Filtering activities**
+**Filtering activities**
+    
 Based on our work from above, let’s subset the data to just be of the activities of interest.
 
 ```{r}
@@ -190,7 +193,8 @@ Based on our work from above, let’s subset the data to just be of the activiti
 So after our aggressive pruning of the data we will have a respectable amount of data left upon which our model can learn.
 
 
-    **Training/testing split**
+**Training/testing split**
+    
 Before we go any further into exploring the data for our model, in an attempt to be as fair as possible with our performance measures, we need to split the data into a train and test set. Since each user performed all activities just once (with the exception of one who only did 10 of the 12 activities) by splitting on userId we will ensure that our model sees new people exclusively when we test it.
 
 ```{r}
@@ -213,7 +217,8 @@ Before we go any further into exploring the data for our model, in an attempt to
 ```
 
 
-    **Visualizing activities**
+**Visualizing activities**
+    
 Now that we have trimmed our data by removing activities and splitting off a test set, we can actually visualize the data for each class to see if there’s any immediately discernible shape that our model may be able to pick up on.
 
 First let’s unpack our data from its dataframe of one-row-per-observation to a tidy version of all the observations.
@@ -248,10 +253,12 @@ Now we have an unpacked set of our observations, let’s visualize them!
 So at least in the accelerometer data patterns definitely emerge. One would imagine that the model may have trouble with the differences between LIE_TO_SIT and LIE_TO_STAND as they have a similar profile on average. The same goes for SIT_TO_STAND and STAND_TO_SIT.
 
 
-    **Preprocessing**
+**Preprocessing**
+
 Before we can train the neural network, we need to take a couple of steps to preprocess the data.
 
-    **Padding observations**
+**Padding observations**
+
 First we will decide what length to pad (and truncate) our sequences to by finding what the 98th percentile length is. By not using the very longest observation length this will help us avoid extra-long outlier recordings messing up the padding.
 
 ```{r}
@@ -278,7 +285,8 @@ Now we simply need to convert our list of observations to matrices, then use the
 Wonderful, we now have our data in a nice neural-network-friendly format of a 3D tensor with dimensions
 
 
-    **One-hot encoding**
+**One-hot encoding**
+
 There’s one last thing we need to do before we can train our model, and that is turn our observation classes from integers into one-hot, or dummy encoded, vectors. Luckily, again Keras has supplied us with a very helpful function to do just this.
 
 ```{r}
@@ -292,8 +300,10 @@ There’s one last thing we need to do before we can train our model, and that i
 ```
 
 
-    **Modeling**
-    **Architecture**
+**Modeling**
+
+**Architecture**
+
 Since we have temporally dense time-series data we will make use of 1D convolutional layers. With temporally-dense data, an RNN has to learn very long dependencies in order to pick up on patterns, CNNs can simply stack a few convolutional layers to build pattern representations of substantial length. Since we are also simply looking for a single classification of activity for each observation, we can just use pooling to ‘summarize’ the CNNs view of the data into a dense layer.
 In addition to stacking two layer_conv_1d() layers, we will use batch norm and dropout to regularize the network.
 
@@ -339,7 +349,8 @@ In addition to stacking two layer_conv_1d() layers, we will use batch norm and d
 ```
 
 
-    **Training**
+**Training**
+
 Now we can train the model using our test and training data. Note that we use callback_model_checkpoint() to ensure that we save only the best variation of the model (desirable since at some point in training the model may begin to overfit or otherwise stop improving).
 
 
@@ -441,19 +452,10 @@ We see that, as the preliminary visualization suggested, the model had a bit of 
 
 
 
-
-
-
-
-
-
-
-
-
 2. Make your own tweaks. For example, try different tuning parameter values and report what you found, or try a new data set, or apply the method to a new application.
 
 
-Now let's try some different parameter and see how's new model performance.
+Now let's try some different parameter and see how's new model performance. 
 
 ```{r}
     input_shape <- dim(trainObs)[-1]
@@ -496,9 +498,9 @@ Now let's try some different parameter and see how's new model performance.
     summary(model)
 ```
 
-    **Training**
+**Training**
 
-
+Now we can train the new model using our test and training data.
 
 ```{r}
     # Compile model
@@ -514,14 +516,17 @@ Now let's try some different parameter and see how's new model performance.
         epochs = 350,
         validation_data = list(testObs, testY),
         callbacks = list(
-          callback_model_checkpoint("best_model.h5",
+          callback_model_checkpoint("best_model_2.h5",
                                     save_best_only = TRUE)
           )
         )
 ```
+We get a respectable 93.3% accuracy on the validation data, which is a little bit lower than the original model.
 
 
-    **Evaluation**
+**Evaluation**
+
+Now that we have a trained model let’s investigate the errors that it made on our testing data. We can load the best model from training based upon validation accuracy and then look at each observation, what the model predicted, how high a probability it assigned, and the true activity label.
 
 ```{r}
     # dataframe to get labels onto one-hot encoded prediction columns
@@ -532,7 +537,7 @@ Now let's try some different parameter and see how's new model performance.
       select(-number)
     
     # Load our best model checkpoint
-    bestModel <- load_model_hdf5("best_model.h5")
+    bestModel <- load_model_hdf5("best_model_2.h5")
     tidyPredictionProbs <- bestModel %>% 
       predict(testObs) %>% 
       as_data_frame() %>% 
@@ -553,7 +558,7 @@ Now let's try some different parameter and see how's new model performance.
     predictionPerformance %>% paged_table()
 ```
 
-
+First, let’s look at how ‘confident’ the model was by if the prediction was correct or not.
 
 ```{r}
     predictionPerformance %>% 
@@ -565,6 +570,8 @@ Now let's try some different parameter and see how's new model performance.
       ggtitle("Probabilities associated with prediction by correctness")
 ```
 
+
+Then let’s see what activities the model had the hardest time with using a confusion matrix.
 
 ```{r}
     predictionPerformance %>% 
@@ -579,6 +586,7 @@ Now let's try some different parameter and see how's new model performance.
       theme_minimal()
 ```
 
+As we could see from the above matrix figure, similar to the original model, the new model also had a bit of trouble with distinguishing between LIE_TO_SIT and LIE_TO_STAND classes, along with the SIT_TO_LIE and STAND_TO_LIE, which also have similar visual profiles. Besides, the new model also had a bit trouble with distinguishing between STAND_TO SIT and STAND_TO_LIE. So we could see that after changing the parameter for the model, the performance of the new model is not as good as the original one.
 
 ## Q2 Deep learning on smart phone
 
