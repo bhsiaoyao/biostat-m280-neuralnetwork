@@ -1,11 +1,7 @@
 ---
 title: "Biostat M280 Homework 4"
 subtitle: Due Mar 22 @ 11:59PM
-author: 
-Li Zhang lizhang1122@ucla.edu
-Xueyao Gao gaoxueyao@g.ucla.edu
-Brian Hsiao bhsiao@g.ucla.edu
-Fanyu Zhang sallyzz2@g.ucla.edu
+author: Li Zhang Xueyao Gao Brian Hsiao Fanyu Zhang 
 output: html_document
 ---
 
