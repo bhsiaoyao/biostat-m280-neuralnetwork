@@ -79,7 +79,8 @@ Let’s take a look at the first 50 rows:
 
 
 
-##File names
+**File names**
+
 Next, let’s look at the actual files of the user data provided to us in RawData
 
 ```{r}
@@ -460,13 +461,13 @@ Now let's try some different parameter and see how's new model performance.
 ```{r}
     input_shape <- dim(trainObs)[-1]
     num_classes <- dim(trainY)[2]
-    filters_2 <- 25     # number of convolutional filters to learn
-    kernel_size_2 <- 10  # how many time-steps each conv layer sees.
-    dense_size_2 <- 40  # size of our penultimate dense layer. 
+    filters_2 <- 36     # number of convolutional filters to learn
+    kernel_size_2 <- 12  # how many time-steps each conv layer sees.
+    dense_size_2 <- 72  # size of our penultimate dense layer. 
    
     # Initialize model
-    model <- keras_model_sequential()
-    model %>%
+    model_2 <- keras_model_sequential()
+    model_2 %>%
       layer_conv_1d(
         filters = filters_2,
         kernel_size = kernel_size_2, 
@@ -495,7 +496,7 @@ Now let's try some different parameter and see how's new model performance.
         name = "dense_output"
         ) 
     
-    summary(model)
+    summary(model_2)
 ```
 
 **Training**
@@ -504,13 +505,13 @@ Now we can train the new model using our test and training data.
 
 ```{r}
     # Compile model
-    model %>% compile(
+    model_2 %>% compile(
       loss = "categorical_crossentropy",
       optimizer = "rmsprop",
       metrics = "accuracy"
       )
     
-    trainHistory <- model %>%
+    trainHistory_2 <- model_2 %>%
       fit(
         x = trainObs, y = trainY,
         epochs = 350,
@@ -530,40 +531,40 @@ Now that we have a trained model let’s investigate the errors that it made on 
 
 ```{r}
     # dataframe to get labels onto one-hot encoded prediction columns
-    oneHotToLabel <- activityLabels %>% 
+    oneHotToLabel_2 <- activityLabels %>% 
       mutate(number = number - 7) %>% 
       filter(number >= 0) %>% 
       mutate(class = paste0("V",number + 1)) %>% 
       select(-number)
     
     # Load our best model checkpoint
-    bestModel <- load_model_hdf5("best_model_2.h5")
-    tidyPredictionProbs <- bestModel %>% 
+    bestModel_2 <- load_model_hdf5("best_model_2.h5")
+    tidyPredictionProbs_2 <- bestModel_2 %>% 
       predict(testObs) %>% 
       as_data_frame() %>% 
       mutate(obs = 1:n()) %>% 
       gather(class, prob, -obs) %>% 
-      right_join(oneHotToLabel, by = "class")
+      right_join(oneHotToLabel_2, by = "class")
     
-    predictionPerformance <- tidyPredictionProbs %>% 
+    predictionPerformance_2 <- tidyPredictionProbs_2 %>% 
       group_by(obs) %>% 
       summarise(
-        highestProb = max(prob),
-        predicted = label[prob == highestProb]) %>% 
+        highestProb_2 = max(prob),
+        predicted_2 = label[prob == highestProb_2]) %>% 
       mutate(
         truth = testData$activityName,
-        correct = truth == predicted
+        correct = truth == predicted_2
         ) 
     
-    predictionPerformance %>% paged_table()
+    predictionPerformance_2 %>% paged_table()
 ```
 
 First, let’s look at how ‘confident’ the model was by if the prediction was correct or not.
 
 ```{r}
-    predictionPerformance %>% 
+    predictionPerformance_2 %>% 
       mutate(result = ifelse(correct, 'Correct', 'Incorrect')) %>% 
-      ggplot(aes(highestProb)) +
+      ggplot(aes(highestProb_2)) +
       geom_histogram(binwidth = 0.01) +
       geom_rug(alpha = 0.5) +
       facet_grid(result~.) +
@@ -574,11 +575,11 @@ First, let’s look at how ‘confident’ the model was by if the prediction wa
 Then let’s see what activities the model had the hardest time with using a confusion matrix.
 
 ```{r}
-    predictionPerformance %>% 
-      group_by(truth, predicted) %>% 
+    predictionPerformance_2 %>% 
+      group_by(truth, predicted_2) %>% 
       summarise(count = n()) %>% 
-      mutate(good = truth == predicted) %>% 
-      ggplot(aes(x = truth,  y = predicted)) +
+      mutate(good = truth == predicted_2) %>% 
+      ggplot(aes(x = truth,  y = predicted_2)) +
       geom_point(aes(size = count, color = good)) +
       geom_text(aes(label = count), 
                 hjust = 0, vjust = 0, nudge_x = 0.1, nudge_y = 0.1) + 
