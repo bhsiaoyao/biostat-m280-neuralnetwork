@@ -599,3 +599,8 @@ Resources:
 1. There are plenty of tutorials and YouTube clips on making apps for iPhone or Android.  
 2. Google's [Cloud Vision API](https://cloud.google.com/vision/) may supply an easy cloud solution.  
 3. [TensorFlow Lite](https://www.tensorflow.org/lite) may provide an easy mobile solution.  
+
+**Solution**
+
+For the food pitcure input, it could be downloaded from the web browser to local library in the simulator, then it could be recognized by our group app.
+
