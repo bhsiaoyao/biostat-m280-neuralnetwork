@@ -604,3 +604,5 @@ Resources:
 
 For the food pitcure input, it could be downloaded from the web browser to local library in the simulator, then it could be recognized by our group app.
 
+
+
