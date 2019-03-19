@@ -23,7 +23,8 @@ I found the [TensorFlow for R Blog](https://blogs.rstudio.com/tensorflow/) serie
 
     Then reproduce the results in the blog as follows:
 
-    **Introduction**
+**Introduction**
+
     In this post we’ll describe how to use smartphone accelerometer and gyroscope data to predict the physical activities of the individuals carrying the phones. The data used in this post comes from the Smartphone-Based Recognition of Human Activities and Postural Transitions Data Set distributed by the University of California, Irvine. Thirty individuals were tasked with performing various basic activities with an attached smartphone recording movement using an accelerometer and gyroscope.
     Before we begin, let’s load the various libraries that we’ll use in the analysis:
 
@@ -41,24 +42,24 @@ I found the [TensorFlow for R Blog](https://blogs.rstudio.com/tensorflow/) serie
 
     The data used in this post come from the Smartphone-Based Recognition of Human Activities and Postural Transitions Data Set distributed by the University of California, Irvine.
     
-    ```{r, eval = FALSE}
+```{r, eval = FALSE}
     dir.create("data")
     download.file(
       url = "http://archive.ics.uci.edu/ml/machine-learning-databases/00341/HAPT%20Data%20Set.zip", 
       destfile = "data/HAPT.zip"
       )
     unzip("data/HAPT.zip", exdir = "data/HAPT")
-    ```
+```
     
 **Activity labels**
 
 The data has integer encodings for the activities which, while not important to the model itself, are helpful for use to see. Let’s load them first.
 
-    ```{r}
+```{r}
     activityLabels <- read.table("data/HAPT/activity_labels.txt", 
                                  col.names = c("number", "label")) 
     activityLabels %>% kable(align = c("c", "l"))
-    ```
+```
 
 Next, we load in the labels key for the RawData. This file is a list of all of the observations, or individual activity recordings, contained in the data set. The key for the columns is taken from the data README.txt.
 
@@ -71,7 +72,9 @@ Next, we load in the labels key for the RawData. This file is a list of all of t
 Let’s take a look at the first 50 rows:
 
 ```{r}
-    labels <- read.table("data/HAPT/RawData/labels.txt", col.names = c("experiment", "userId", "activity", "startPos", "endPos"))
+    labels <- read.table("data/HAPT/RawData/labels.txt", 
+                         col.names = c("experiment", "userId", "activity", 
+                                       "startPos", "endPos"))
     labels %>% 
       head(50) %>% 
       paged_table()
@@ -147,8 +150,10 @@ To obtain this we will scan through each of the recording files present in dataF
         mutate(data = map2(startPos, endPos, extractObservation)) %>%
         select(-startPos, -endPos)
       }
-    # scan through all experiment and userId combos and gather data into a dataframe. 
-    allObservations <- map2_df(fileInfo$experiment, fileInfo$userId, loadFileData) %>%
+    # scan through all experiment and userId combos and 
+    # gather data into a dataframe. 
+    allObservations <- map2_df(fileInfo$experiment, 
+                               fileInfo$userId, loadFileData) %>%
       right_join(activityLabels, by = c("activity" = "number")) %>% 
       rename(activityName = label)
     # cache work. 
@@ -589,6 +594,11 @@ Then let’s see what activities the model had the hardest time with using a con
 
 As we could see from the above matrix figure, similar to the original model, the new model also had a bit of trouble with distinguishing between LIE_TO_SIT and LIE_TO_STAND classes, along with the SIT_TO_LIE and STAND_TO_LIE, which also have similar visual profiles. Besides, the new model also had a bit trouble with distinguishing between STAND_TO SIT and STAND_TO_LIE. So we could see that after changing the parameter for the model, the performance of the new model is not as good as the original one.
 
+**Contribution**
+
+Li and Xueyao worked on the reproduction of the model in the blog, Fanyu and Brian worked on tuning parameter values and building new model.
+
+
 ## Q2 Deep learning on smart phone
 
 Professor May Wang in Department of Community Health Sciences (CHS) studies obesity in children and intervention strategies to prevent obesity. She asked me whether it is possible to develop an app such that a user takes a photo of a meal and the app will recognize and record the type of food (pizza, mac and cheese, burger, ...). 
@@ -604,5 +614,7 @@ Resources:
 
 For the food pitcure input, it could be downloaded from the web browser to local library in the simulator, then it could be recognized by our group app.
 
+**Contribution**
 
+Li and Fanyu worked on the exploration of developing the mobile app, including learning from tutorials online, maneuvering on the Google’s Could Vision API and the Firebase. Then we learned from examples online about how to develop an app on swift based on the Xcode software. Xueyao and Brian in addition worked on the improvement of the app, including the user interface, ViewController code. Finally, we together designed the app icon and launch interface to make it a more user-friendly app.
 
