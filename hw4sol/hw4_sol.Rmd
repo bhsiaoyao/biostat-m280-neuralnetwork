@@ -37,7 +37,8 @@ I found the [TensorFlow for R Blog](https://blogs.rstudio.com/tensorflow/) serie
     install_tensorflow()
     ```
 
-    **Activities dataset**
+**Activities dataset**
+
     The data used in this post come from the Smartphone-Based Recognition of Human Activities and Postural Transitions Data Set distributed by the University of California, Irvine.
     
     ```{r, eval = FALSE}
@@ -49,7 +50,8 @@ I found the [TensorFlow for R Blog](https://blogs.rstudio.com/tensorflow/) serie
     unzip("data/HAPT.zip", exdir = "data/HAPT")
     ```
     
-    **Activity labels**
+**Activity labels**
+
 The data has integer encodings for the activities which, while not important to the model itself, are helpful for use to see. Let’s load them first.
 
     ```{r}
@@ -106,7 +108,8 @@ There is a three-part file naming scheme. The first part is the type of data the
 
 
 
-    **Reading and gathering data**
+**Reading and gathering data**
+
 Before we can do anything with the data provided we need to get it into a model-friendly format. This means we want to have a list of observations, their class (or activity label), and the data corresponding to the recording.
 
 To obtain this we will scan through each of the recording files present in dataFiles, look up what observations are contained in the recording, extract those recordings and return everything to an easy to model with dataframe.
@@ -365,7 +368,8 @@ The model is learning something! We get a respectable 94.4% accuracy on the vali
 
 
 
-    **Evaluation**
+**Evaluation**
+
 Now that we have a trained model let’s investigate the errors that it made on our testing data. We can load the best model from training based upon validation accuracy and then look at each observation, what the model predicted, how high a probability it assigned, and the true activity label.
 
 ```{r}
@@ -446,13 +450,135 @@ We see that, as the preliminary visualization suggested, the model had a bit of 
 
 
 
-
-
-
-
-
-
 2. Make your own tweaks. For example, try different tuning parameter values and report what you found, or try a new data set, or apply the method to a new application.
+
+
+Now let's try some different parameter and see how's new model performance.
+
+```{r}
+    input_shape <- dim(trainObs)[-1]
+    num_classes <- dim(trainY)[2]
+    filters_2 <- 25     # number of convolutional filters to learn
+    kernel_size_2 <- 10  # how many time-steps each conv layer sees.
+    dense_size_2 <- 40  # size of our penultimate dense layer. 
+   
+    # Initialize model
+    model <- keras_model_sequential()
+    model %>%
+      layer_conv_1d(
+        filters = filters_2,
+        kernel_size = kernel_size_2, 
+        input_shape = input_shape,
+        padding = "valid", 
+        activation = "relu") %>%
+      layer_batch_normalization() %>%
+      layer_spatial_dropout_1d(0.15) %>% 
+      layer_conv_1d(
+        filters = filters_2/2,
+        kernel_size = kernel_size_2,
+        activation = "relu",) %>%
+      # Apply average pooling:
+      layer_global_average_pooling_1d() %>% 
+      layer_batch_normalization() %>%
+      layer_dropout(0.2) %>% 
+      layer_dense(
+        dense_size_2,
+        activation = "relu"
+        ) %>% 
+      layer_batch_normalization() %>%
+      layer_dropout(0.25) %>%
+      layer_dense(
+        num_classes, 
+        activation = "softmax",
+        name = "dense_output"
+        ) 
+    
+    summary(model)
+```
+
+    **Training**
+
+
+
+```{r}
+    # Compile model
+    model %>% compile(
+      loss = "categorical_crossentropy",
+      optimizer = "rmsprop",
+      metrics = "accuracy"
+      )
+    
+    trainHistory <- model %>%
+      fit(
+        x = trainObs, y = trainY,
+        epochs = 350,
+        validation_data = list(testObs, testY),
+        callbacks = list(
+          callback_model_checkpoint("best_model.h5",
+                                    save_best_only = TRUE)
+          )
+        )
+```
+
+
+    **Evaluation**
+
+```{r}
+    # dataframe to get labels onto one-hot encoded prediction columns
+    oneHotToLabel <- activityLabels %>% 
+      mutate(number = number - 7) %>% 
+      filter(number >= 0) %>% 
+      mutate(class = paste0("V",number + 1)) %>% 
+      select(-number)
+    
+    # Load our best model checkpoint
+    bestModel <- load_model_hdf5("best_model.h5")
+    tidyPredictionProbs <- bestModel %>% 
+      predict(testObs) %>% 
+      as_data_frame() %>% 
+      mutate(obs = 1:n()) %>% 
+      gather(class, prob, -obs) %>% 
+      right_join(oneHotToLabel, by = "class")
+    
+    predictionPerformance <- tidyPredictionProbs %>% 
+      group_by(obs) %>% 
+      summarise(
+        highestProb = max(prob),
+        predicted = label[prob == highestProb]) %>% 
+      mutate(
+        truth = testData$activityName,
+        correct = truth == predicted
+        ) 
+    
+    predictionPerformance %>% paged_table()
+```
+
+
+
+```{r}
+    predictionPerformance %>% 
+      mutate(result = ifelse(correct, 'Correct', 'Incorrect')) %>% 
+      ggplot(aes(highestProb)) +
+      geom_histogram(binwidth = 0.01) +
+      geom_rug(alpha = 0.5) +
+      facet_grid(result~.) +
+      ggtitle("Probabilities associated with prediction by correctness")
+```
+
+
+```{r}
+    predictionPerformance %>% 
+      group_by(truth, predicted) %>% 
+      summarise(count = n()) %>% 
+      mutate(good = truth == predicted) %>% 
+      ggplot(aes(x = truth,  y = predicted)) +
+      geom_point(aes(size = count, color = good)) +
+      geom_text(aes(label = count), 
+                hjust = 0, vjust = 0, nudge_x = 0.1, nudge_y = 0.1) + 
+      guides(color = FALSE, size = FALSE) +
+      theme_minimal()
+```
+
 
 ## Q2 Deep learning on smart phone
 
